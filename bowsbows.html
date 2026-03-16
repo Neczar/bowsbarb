@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BOWSINGCAKESS</title>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    background: black;
+    font-family: monospace;
+}
+
+canvas {
+    display: block;
+}
+
+#play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 18px 36px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ffffff, #cccccc);
+    color: #000;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
+}
+
+#play:hover {
+    background: linear-gradient(135deg, #ffffff, #eeeeee);
+    transform: translate(-50%, -50%) scale(1.05);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+
+#play:active {
+    transform: translate(-50%, -50%) scale(0.98);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<button id="play">Play</button>
+<audio id="audio" src="dummy.mp3"></audio>
+
+<script>
+const video = document.createElement("video");
+video.src = "bows.mp4";
+video.muted = true;
+video.loop = true;
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const play = document.getElementById("play");
+const audio = document.getElementById("audio");
+
+let lyrics = `Maybe we were too good
+We were too good to be
+Boy you should be scared of me
+...replace with your full lyrics...`.replace(/\n/g," ");
+
+let lyricIndex = 0;
+let frameCount = 0;
+
+let fontSize = 14;
+let gap = 6;
+ctx.font = fontSize + "px monospace";
+ctx.textBaseline = "top";
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+function draw() {
+    if(video.videoWidth === 0 || video.videoHeight === 0){
+        requestAnimationFrame(draw);
+        return;
+    }
+
+    ctx.fillStyle = "black";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    const offCanvas = document.createElement("canvas");
+    offCanvas.width = canvas.width;
+    offCanvas.height = canvas.height;
+    const offCtx = offCanvas.getContext("2d");
+
+    const videoRatio = video.videoWidth / video.videoHeight;
+    const canvasRatio = canvas.width / canvas.height;
+    let drawWidth, drawHeight;
+    if(videoRatio > canvasRatio){
+        drawWidth = canvas.width;
+        drawHeight = canvas.width / videoRatio;
+    } else {
+        drawHeight = canvas.height;
+        drawWidth = canvas.height * videoRatio;
+    }
+    const offsetX = (canvas.width - drawWidth)/2;
+    const offsetY = (canvas.height - drawHeight)/2;
+
+    offCtx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+    const frame = offCtx.getImageData(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = "white";
+    for(let y=0; y<canvas.height; y+=gap){
+        for(let x=0; x<canvas.width; x+=gap){
+            const index = (y*canvas.width + x)*4;
+            const r = frame.data[index];
+            const g = frame.data[index+1];
+            const b = frame.data[index+2];
+            const brightness = (r+g+b)/3;
+
+            if(brightness > 100){
+                const char = lyrics[lyricIndex];
+                ctx.fillText(char, x, y);
+                if(frameCount % 2 === 0){
+                    lyricIndex++;
+                    if(lyricIndex >= lyrics.length) lyricIndex=0;
+                }
+            }
+        }
+    }
+
+    frameCount++;
+    requestAnimationFrame(draw);
+}
+
+play.onclick = () => {
+    play.style.display = "none";
+    video.play();
+    audio.play();
+    draw();
+};
+</script>
+
+</body>
+</html>
